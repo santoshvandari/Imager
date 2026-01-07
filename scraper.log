@@ -1,0 +1,45 @@
+2026-01-07 18:10:19,345 - INFO - Setting up Chrome driver...
+2026-01-07 18:10:19,345 - INFO - ====== WebDriver manager ======
+2026-01-07 18:10:19,439 - INFO - Get LATEST chromedriver version for google-chrome
+2026-01-07 18:10:19,591 - INFO - Get LATEST chromedriver version for google-chrome
+2026-01-07 18:10:19,743 - INFO - Driver [/home/wabisabi/.wdm/drivers/chromedriver/linux64/143.0.7499.192/chromedriver-linux64/chromedriver] found in cache
+2026-01-07 18:10:20,432 - INFO - Driver setup complete.
+2026-01-07 18:10:20,432 - INFO - Starting scrape for: cute kittens
+2026-01-07 18:10:24,280 - INFO - Created directory: downloaded_images/cute_kittens
+2026-01-07 18:10:24,351 - INFO - Found 221 thumbnails with selector: img.YQ4gaf
+2026-01-07 18:11:03,880 - INFO - Downloaded 1/10 for 'cute kittens'
+2026-01-07 18:11:15,035 - INFO - Downloaded 2/10 for 'cute kittens'
+2026-01-07 18:12:03,195 - INFO - Downloaded 3/10 for 'cute kittens'
+2026-01-07 18:12:27,539 - INFO - Downloaded 4/10 for 'cute kittens'
+2026-01-07 18:13:04,231 - INFO - Downloaded 5/10 for 'cute kittens'
+2026-01-07 18:13:11,014 - INFO - Downloaded 6/10 for 'cute kittens'
+2026-01-07 18:13:17,280 - INFO - Downloaded 7/10 for 'cute kittens'
+2026-01-07 18:13:54,114 - INFO - Setting up Chrome driver...
+2026-01-07 18:13:54,114 - INFO - ====== WebDriver manager ======
+2026-01-07 18:13:54,211 - INFO - Get LATEST chromedriver version for google-chrome
+2026-01-07 18:13:54,369 - INFO - Get LATEST chromedriver version for google-chrome
+2026-01-07 18:13:54,522 - INFO - Driver [/home/wabisabi/.wdm/drivers/chromedriver/linux64/143.0.7499.192/chromedriver-linux64/chromedriver] found in cache
+2026-01-07 18:13:55,233 - INFO - Driver setup complete.
+2026-01-07 18:13:55,234 - INFO - Starting scrape for: cute kittens
+2026-01-07 18:13:59,351 - INFO - Found 221 thumbnails with selector: img.YQ4gaf
+2026-01-07 18:14:02,809 - INFO - Downloaded 1/50 for 'cute kittens' using selector: div[data-id] img
+2026-01-07 18:14:06,260 - INFO - Downloaded 2/50 for 'cute kittens' using selector: div[data-id] img
+2026-01-07 18:14:09,630 - INFO - Downloaded 3/50 for 'cute kittens' using selector: div[data-id] img
+2026-01-07 18:14:12,783 - INFO - Downloaded 4/50 for 'cute kittens' using selector: div[data-id] img
+2026-01-07 18:14:15,686 - INFO - Downloaded 5/50 for 'cute kittens' using selector: div[data-id] img
+2026-01-07 18:14:17,509 - INFO - Downloaded 6/50 for 'cute kittens' using selector: div[data-id] img
+2026-01-07 18:14:19,637 - INFO - Downloaded 7/50 for 'cute kittens' using selector: div[data-id] img
+2026-01-07 18:14:21,679 - INFO - Downloaded 8/50 for 'cute kittens' using selector: div[data-id] img
+2026-01-07 18:14:23,774 - INFO - Downloaded 9/50 for 'cute kittens' using selector: div[data-id] img
+2026-01-07 18:14:25,702 - INFO - Downloaded 10/50 for 'cute kittens' using selector: div[data-id] img
+2026-01-07 18:14:27,567 - INFO - Downloaded 11/50 for 'cute kittens' using selector: div[data-id] img
+2026-01-07 18:14:29,781 - INFO - Downloaded 12/50 for 'cute kittens' using selector: img.iPVvYb
+2026-01-07 18:14:32,044 - INFO - Downloaded 13/50 for 'cute kittens' using selector: div[data-id] img
+2026-01-07 18:14:32,283 - INFO - Closing driver...
+2026-01-07 18:14:32,285 - WARNING - Retrying (Retry(total=2, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ConnectionResetError(104, 'Connection reset by peer')': /session/08eb45fbd68b237cc9facbcf97eef09a
+2026-01-07 18:14:32,286 - WARNING - Retrying (Retry(total=1, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError("HTTPConnection(host='localhost', port=54991): Failed to establish a new connection: [Errno 111] Connection refused")': /session/08eb45fbd68b237cc9facbcf97eef09a
+2026-01-07 18:14:32,287 - WARNING - Retrying (Retry(total=0, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError("HTTPConnection(host='localhost', port=54991): Failed to establish a new connection: [Errno 111] Connection refused")': /session/08eb45fbd68b237cc9facbcf97eef09a
+2026-01-07 18:14:34,132 - INFO - Closing driver...
+2026-01-07 18:14:34,135 - WARNING - Retrying (Retry(total=2, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ConnectionResetError(104, 'Connection reset by peer')': /session/ea0cf90b52acb8266242254295823de6
+2026-01-07 18:14:34,135 - WARNING - Retrying (Retry(total=1, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError("HTTPConnection(host='localhost', port=41921): Failed to establish a new connection: [Errno 111] Connection refused")': /session/ea0cf90b52acb8266242254295823de6
+2026-01-07 18:14:34,136 - WARNING - Retrying (Retry(total=0, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError("HTTPConnection(host='localhost', port=41921): Failed to establish a new connection: [Errno 111] Connection refused")': /session/ea0cf90b52acb8266242254295823de6
