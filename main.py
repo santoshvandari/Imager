@@ -14,16 +14,16 @@ from webdriver_manager.chrome import ChromeDriverManager
 from PIL import Image
 from io import BytesIO
 
-# --- Configuration ---
+# Configuration
 SEARCH_TERMS = ["cute kittens", "beautiful landscapes", "cyberpunk city"]
-NUMBER_OF_IMAGES = 50
+NUMBER_OF_IMAGES = 5
 SAVE_FOLDER = "downloaded_images"
 LOG_FILE = "scraper.log"
 
-# --- Constants ---
+# GOOGLE IMAGE URL
 GOOGLE_IMAGES_URL = "https://www.google.com/search?tbm=isch&q="
 
-# --- Logging Setup ---
+# Logger Setup
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -37,16 +37,13 @@ logger = logging.getLogger(__name__)
 def setup_driver():
     logger.info("Setting up Chrome driver...")
     options = webdriver.ChromeOptions()
-    # options.add_argument("--headless") # Uncomment to run headless
     options.add_argument("--window-size=1920,1080")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
     options.add_experimental_option("excludeSwitches", ["enable-automation"])
     options.add_experimental_option('useAutomationExtension', False)
-    
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-    
     driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
         "source": """
             Object.defineProperty(navigator, 'webdriver', {
@@ -63,15 +60,12 @@ def random_sleep(min_seconds: float = 1.0, max_seconds: float = 3.0):
     time.sleep(sleep_time)
 
 def scroll_page(driver, scrolls=5):
-    """Scroll the page to load more images"""
     logger.info(f"Scrolling page {scrolls} times...")
     for i in range(scrolls):
         driver.execute_script("window.scrollBy(0, 1000);")
         random_sleep(1, 2)
     
-    # Try to click "Show more results" button if it exists
     try:
-        # Multiple possible selectors for the "Show more" button
         possible_selectors = [".mye4qd", ".LZ4I", "input[value='Show more results']"]
         for selector in possible_selectors:
             try:
@@ -87,7 +81,6 @@ def scroll_page(driver, scrolls=5):
         logger.debug(f"No 'Show more results' button found: {e}")
 
 def download_image(url, folder_path, image_name):
-    """Download image from URL or base64 string"""
     try:
         if url.startswith("data:image"):
             logger.debug(f"Downloading base64 image: {image_name}")
@@ -116,27 +109,23 @@ def download_image(url, folder_path, image_name):
 def scrape_images(driver, query, num_images):
     logger.info(f"Starting scrape for: {query}")
     
-    # Navigate directly to image search with query
     search_url = GOOGLE_IMAGES_URL + query.replace(" ", "+")
     driver.get(search_url)
     random_sleep(2, 3)
     
-    # Store the main window handle
     main_window = driver.current_window_handle
     
     image_count = 0
     downloaded_urls = set()
     scroll_count = 0
-    processed_indices = set()  # Track which thumbnails we've already processed
+    processed_indices = set()
     
-    # Create directory for query
     query_folder = os.path.join(SAVE_FOLDER, query.replace(" ", "_"))
     if not os.path.exists(query_folder):
         os.makedirs(query_folder)
         logger.info(f"Created directory: {query_folder}")
     
-    while image_count < num_images and scroll_count < 20:  # Max 20 scrolls to prevent infinite loop
-        # Wait for thumbnails to load
+    while image_count < num_images and scroll_count < 20:  
         try:
             WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, "img.Q4LuWd, img.rg_i, img.YQ4gaf"))
@@ -145,13 +134,11 @@ def scrape_images(driver, query, num_images):
             logger.error(f"Timeout waiting for images: {e}")
             break
         
-        # Try multiple selectors for thumbnails as Google changes them
         thumbnail_selectors = ["img.YQ4gaf", "img.Q4LuWd", "img.rg_i"]
         
         thumbnails = []
         active_selector = None
         
-        # Find which selector works
         for selector in thumbnail_selectors:
             thumbnails = driver.find_elements(By.CSS_SELECTOR, selector)
             if thumbnails:
@@ -166,10 +153,8 @@ def scrape_images(driver, query, num_images):
             random_sleep(1, 2)
             continue
         
-        # Track if we made any progress in this iteration
         images_downloaded_this_round = 0
         
-        # Process only new thumbnails we haven't seen yet
         for idx in range(len(thumbnails)):
             if image_count >= num_images:
                 break
@@ -178,27 +163,22 @@ def scrape_images(driver, query, num_images):
                 continue
             
             try:
-                # Re-fetch the thumbnail list to avoid stale elements
                 current_thumbnails = driver.find_elements(By.CSS_SELECTOR, active_selector)
                 if idx >= len(current_thumbnails):
                     continue
                 
                 thumbnail = current_thumbnails[idx]
                 
-                # Check if element is still valid and displayed
                 if not thumbnail.is_displayed():
                     processed_indices.add(idx)
                     continue
                 
-                # Scroll thumbnail into view
                 driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", thumbnail)
                 random_sleep(0.3, 0.6)
                 
-                # Click the thumbnail using JavaScript to avoid interception issues
                 driver.execute_script("arguments[0].click();", thumbnail)
                 random_sleep(1, 1.5)
                 
-                # Check if new tabs/windows were opened and close them
                 current_windows = driver.window_handles
                 if len(current_windows) > 1:
                     for window in current_windows:
@@ -208,8 +188,6 @@ def scrape_images(driver, query, num_images):
                             logger.debug(f"Closed extra tab/window")
                     driver.switch_to.window(main_window)
                 
-                # Try to find ANY image element that might contain the full-size image
-                # Start with specific selectors, then fall back to general ones
                 img_selectors = [
                     "img.sFlh5c.pT0Scc.iPVvYb",  # Google Images specific
                     "img.n3VNCb",                 # Alternative Google selector
@@ -233,11 +211,9 @@ def scrape_images(driver, query, num_images):
                             if not src or src in downloaded_urls:
                                 continue
                             
-                            # Skip placeholder/loading images
                             if 'data:image/gif' in src or 'data:image/svg' in src or len(src) < 100:
                                 continue
                             
-                            # Check image dimensions to avoid tiny images (like icons)
                             try:
                                 width = actual_image.get_attribute('naturalWidth') or actual_image.get_attribute('width')
                                 height = actual_image.get_attribute('naturalHeight') or actual_image.get_attribute('height')
@@ -263,7 +239,6 @@ def scrape_images(driver, query, num_images):
                         logger.debug(f"Selector {img_selector} failed: {str(e)[:50]}")
                         continue
                 
-                # If still no image found, try a more generic approach - find ALL img tags
                 if not found_image:
                     try:
                         logger.debug(f"Trying generic img search for thumbnail {idx}")
@@ -277,7 +252,6 @@ def scrape_images(driver, query, num_images):
                                 if not src or src in downloaded_urls:
                                     continue
                                 
-                                # Skip very small or placeholder images
                                 if 'data:image/gif' in src or 'data:image/svg' in src or len(src) < 100:
                                     continue
                                 
@@ -292,7 +266,6 @@ def scrape_images(driver, query, num_images):
                                     width = 0
                                     height = 0
                                 
-                                # Only consider images that are reasonably large
                                 if width >= 200 and height >= 200:
                                     valid_images.append((img, src, width * height))
                             except:
@@ -323,7 +296,6 @@ def scrape_images(driver, query, num_images):
                 processed_indices.add(idx)  # Mark as processed to avoid retrying
                 continue
         
-        # If we didn't download anything in this round, scroll for more images
         if images_downloaded_this_round == 0:
             logger.info(f"No new images found. Scrolling for more content...")
             scroll_page(driver, 3)
