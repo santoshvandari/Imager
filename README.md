@@ -1,6 +1,6 @@
 # Imager: A Selenium-Based Image Scraping Utility
 
-**A Python automation Script designed to collect high-resolution visual data from dynamic web environments. **
+**A Python automation Script designed to collect high-resolution visual data from dynamic web environments.**
 
 ![Banner](imager_banner.png)
 
