@@ -1,6 +1,5 @@
 __pycache__
-*.jpg
-*.png
+
 *.gif
 *.jpeg
 *.log

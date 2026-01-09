@@ -1,0 +1,11 @@
+services:
+  imager:
+    build: .
+    container_name: imager
+    env_file:
+      - .env
+    volumes:
+      - ./src:/app/src
+      - ./downloaded_images:/app/downloaded_images # change this according of the save folder in the .env file
+    shm_size: "2gb"
+    restart: unless-stopped
