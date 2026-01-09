@@ -12,15 +12,22 @@ from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 from PIL import Image
 from io import BytesIO
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 # Configuration
-SEARCH_TERMS = ["cute kittens", "beautiful landscapes", "cyberpunk city"]
-NUMBER_OF_IMAGES = 5
-SAVE_FOLDER = "downloaded_images"
-LOG_FILE = "scraper.log"
+SEARCH_TERMS_RAW = os.getenv("SEARCH_TERMS",None)
+if not SEARCH_TERMS_RAW:
+    raise ValueError('SEARCH_TERMS is not set in the environment variables')
+SEARCH_TERMS = SEARCH_TERMS_RAW.split(",")
+NUMBER_OF_IMAGES = os.getenv("NUMBER_OF_IMAGES",5)
+SAVE_FOLDER = os.getenv("SAVE_FOLDER","downloaded_images")
+LOG_FILE = os.getenv("LOG_FILE","scraper.log")
 
 # GOOGLE IMAGE URL
-GOOGLE_IMAGES_URL = "https://www.google.com/search?tbm=isch&q="
+GOOGLE_IMAGES_URL = os.getenv("GOOGLE_IMAGES_URL","https://www.google.com/search?tbm=isch&q=")
 
 # Logger Setup
 logging.basicConfig(
@@ -313,7 +320,7 @@ def main():
         for term in SEARCH_TERMS:
             scrape_images(driver, term, NUMBER_OF_IMAGES)
     except Exception as e:
-        logger.critical(f"Critical error in main execution: {e}", exc_info=True)
+        logger.error(f"Critical error in main execution: {e}", exc_info=True)
     finally:
         if driver:
             logger.info("Closing driver...")
