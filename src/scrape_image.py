@@ -1,5 +1,6 @@
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
@@ -21,7 +22,9 @@ WEBSITE_LOAD_TIMEOUT = int(os.getenv("WEBSITE_LOAD_TIMEOUT", 10))
 def scroll_page(driver: webdriver.Chrome, scrolls: int = 2):
     logger.info(f"Scrolling page to load more results...")
     for _ in range(scrolls):
-        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        driver.execute_script(
+            "window.scrollTo(0, document.body.scrollHeight);"
+        )
         random_sleep(1.5, 2.5)
 
     try:
@@ -42,7 +45,9 @@ def scroll_page(driver: webdriver.Chrome, scrolls: int = 2):
                     logger.info(
                         f"Clicking 'Show more results' button (selector: {selector})"
                     )
-                    driver.execute_script("arguments[0].click();", show_more_btn)
+                    driver.execute_script(
+                        "arguments[0].click();", show_more_btn
+                    )
                     random_sleep(2, 3)
                     found_btn = True
                     break
@@ -51,7 +56,7 @@ def scroll_page(driver: webdriver.Chrome, scrolls: int = 2):
 
         if not found_btn:
             # Fallback text search using JavaScript to find button with 'Show more'
-            driver.execute_script(
+            driver.execute_script(  # pyright: ignore[reportUnknownMemberType]
                 """
                 const btns = Array.from(document.querySelectorAll('button, div[role="button"], input[type="button"]'));
                 const showMore = btns.find(b => b.innerText && (b.innerText.toLowerCase().includes('show more') || b.innerText.includes('नतीजा हेर्नुहोस्') || b.innerText.includes('थप')));
@@ -101,7 +106,7 @@ def scrape_images(driver: webdriver.Chrome, query: str, num_images: int):
 
         # Prioritize selectors that are unique to search results, not chips
         thumbnail_selectors = [".mNsIhb img.YQ4gaf", ".H8uYec img.YQ4gaf", "img.YQ4gaf"]
-        thumbnails = []
+        thumbnails: list[WebElement] = []
         active_selector = None
 
         for selector in thumbnail_selectors:
@@ -111,14 +116,18 @@ def scrape_images(driver: webdriver.Chrome, query: str, num_images: int):
             for img in all_found:
                 try:
                     # Check if the image is inside a suggestion chip or related search
-                    if img.find_elements(
+                    if img.find_elements(  # pyright: ignore[reportUnknownMemberType]
                         By.XPATH,
                         "./ancestor::a[contains(@class, 'nPDzT') or contains(@class, 'T3FoJb') or contains(@class, 'bqW4cb')]",
                     ):
                         continue
-                    valid_thumbnails.append(img)
+                    valid_thumbnails.append(
+                        img
+                    )
                 except:
-                    valid_thumbnails.append(img)
+                    valid_thumbnails.append(
+                        img
+                    )  
 
             if valid_thumbnails:
                 thumbnails = valid_thumbnails
