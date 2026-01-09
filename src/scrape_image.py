@@ -1,7 +1,9 @@
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
 from logger_config import logger
 from utils import random_sleep, download_image
 import os
@@ -14,35 +16,65 @@ GOOGLE_IMAGES_URL = os.getenv(
     "GOOGLE_IMAGES_URL", "https://www.google.com/search?tbm=isch&q="
 )
 SAVE_FOLDER = os.getenv("SAVE_FOLDER", "downloaded_images")
+WEBSITE_LOAD_TIMEOUT = int(os.getenv("WEBSITE_LOAD_TIMEOUT", 10))
 
 
-def scroll_page(driver: webdriver.Chrome, scrolls: int = 5):
-    logger.info(f"Scrolling page {scrolls} times...")
+def scroll_page(driver: webdriver.Chrome, scrolls: int = 2):
+    logger.info(f"Scrolling page to load more results...")
     for _ in range(scrolls):
-
-        driver.execute_script(  # pyright: ignore[reportUnknownMemberType]
-            "window.scrollBy(0, 1000);"
+        driver.execute_script(
+            "window.scrollTo(0, document.body.scrollHeight);"
         )
-        random_sleep(1, 2)
+        random_sleep(1.5, 2.5)
 
     try:
-        possible_selectors = [".mye4qd", ".LZ4I", "input[value='Show more results']"]
+        # Modern 'Show more' button selectors and text search
+        possible_selectors = [
+            ".mye4qd",
+            ".LZ4I",
+            "input[value='Show more results']",
+            ".kSFCof.MagqMc.U48fD",
+            "div[role='button'][aria-label='Show more results']",
+        ]
+
+        found_btn = False
         for selector in possible_selectors:
             try:
                 show_more_btn = driver.find_element(By.CSS_SELECTOR, selector)
                 if show_more_btn.is_displayed():
-                    logger.info("Clicking 'Show more results' button")
-                    show_more_btn.click()
+                    logger.info(
+                        f"Clicking 'Show more results' button (selector: {selector})"
+                    )
+                    driver.execute_script(
+                        "arguments[0].click();", show_more_btn
+                    )
                     random_sleep(2, 3)
+                    found_btn = True
                     break
             except:
                 continue
+
+        if not found_btn:
+            # Fallback text search using JavaScript to find button with 'Show more'
+            driver.execute_script(  # pyright: ignore[reportUnknownMemberType]
+                """
+                const btns = Array.from(document.querySelectorAll('button, div[role="button"], input[type="button"]'));
+                const showMore = btns.find(b => b.innerText && (b.innerText.toLowerCase().includes('show more') || b.innerText.includes('नतीजा हेर्नुहोस्') || b.innerText.includes('थप')));
+                if (showMore) {
+                    showMore.scrollIntoView();
+                    showMore.click();
+                }
+            """
+            )
+            random_sleep(1, 2)
+
     except Exception as e:
-        logger.debug(f"No 'Show more results' button found: {e}")
+        logger.debug(f"Scroll/Show-more interaction error: {e}")
 
 
 def scrape_images(driver: webdriver.Chrome, query: str, num_images: int):
     logger.info(f"Starting high-resolution scrape for: {query}")
+    driver.set_page_load_timeout(WEBSITE_LOAD_TIMEOUT)
 
     search_url = GOOGLE_IMAGES_URL + query.replace(" ", "+")
     driver.get(search_url)
@@ -62,28 +94,49 @@ def scrape_images(driver: webdriver.Chrome, query: str, num_images: int):
 
     while image_count < num_images and scroll_count < 20:
         try:
+            # Wait for thumbnails that are likely actual results (inside .mNsIhb)
             _ = WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located(
-                    (By.CSS_SELECTOR, "img.YQ4gaf, img.Q4LuWd, img.rg_i")
+                    (By.CSS_SELECTOR, ".mNsIhb img.YQ4gaf, .H8uYec img.YQ4gaf")
                 )
             )
         except Exception as e:
             logger.error(f"Timeout waiting for thumbnails: {e}")
             break
 
-        thumbnail_selectors = ["img.YQ4gaf", "img.Q4LuWd", "img.rg_i"]
-        thumbnails = []
+        # Prioritize selectors that are unique to search results, not chips
+        thumbnail_selectors = [".mNsIhb img.YQ4gaf", ".H8uYec img.YQ4gaf", "img.YQ4gaf"]
+        thumbnails: list[WebElement] = []
         active_selector = None
 
         for selector in thumbnail_selectors:
-            thumbnails = driver.find_elements(By.CSS_SELECTOR, selector)
-            if thumbnails:
+            all_found = driver.find_elements(By.CSS_SELECTOR, selector)
+            # Filter out elements that are inside chip containers (nPDzT or T3FoJb)
+            valid_thumbnails = []
+            for img in all_found:
+                try:
+                    # Check if the image is inside a suggestion chip or related search
+                    if img.find_elements(  # pyright: ignore[reportUnknownMemberType]
+                        By.XPATH,
+                        "./ancestor::a[contains(@class, 'nPDzT') or contains(@class, 'T3FoJb') or contains(@class, 'bqW4cb')]",
+                    ):
+                        continue
+                    valid_thumbnails.append(
+                        img
+                    )
+                except:
+                    valid_thumbnails.append(
+                        img
+                    )  
+
+            if valid_thumbnails:
+                thumbnails = valid_thumbnails
                 active_selector = selector
                 break
 
         if not thumbnails:
-            logger.warning("No thumbnails found, scrolling...")
-            scroll_page(driver, 3)
+            logger.warning("No valid thumbnails found, scrolling...")
+            scroll_page(driver, 2)
             scroll_count += 1
             continue
 
@@ -168,37 +221,42 @@ def scrape_images(driver: webdriver.Chrome, query: str, num_images: int):
                         logger.info(
                             f"Visiting source website for image {image_count+1}: {visit_url}"
                         )
-                        # Open visit URL in a new tab
-                        driver.execute_script(  # pyright: ignore[reportUnknownMemberType]
-                            "window.open(arguments[0], '_blank');", visit_url
-                        )
-                        driver.switch_to.window(driver.window_handles[-1])
-                        random_sleep(2, 4)  # Allow page to load and cookies to set
-
-                        # Now open the image itself in a new tab as requested
-                        logger.info(f"Opening image in new tab: {high_res_url}")
-                        driver.execute_script(  # pyright: ignore[reportUnknownMemberType]
-                            "window.open(arguments[0], '_blank');", high_res_url
-                        )
-                        driver.switch_to.window(driver.window_handles[-1])
-                        random_sleep(1, 2)
-
-                        # Download the image from the direct link
-                        if download_image(
-                            high_res_url, query_folder, f"img_{image_count}"
-                        ):
-                            image_count += 1
-                            images_downloaded_this_round += 1
-                            downloaded_urls.add(high_res_url)
-                            logger.info(
-                                f"Successfully downloaded high-res image {image_count}"
-                            )
-
-                        # Close extra tabs and return to main
-                        while len(driver.window_handles) > 1:
+                        try:
+                            # Use new tabs with driver.get to enforce timeout
+                            driver.execute_script("window.open('', '_blank');")
                             driver.switch_to.window(driver.window_handles[-1])
-                            driver.close()
-                        driver.switch_to.window(main_window)
+                            driver.get(visit_url)
+                            random_sleep(2, 4)
+
+                            # Now open the image itself in a new tab
+                            logger.info(f"Opening image in new tab: {high_res_url}")
+                            driver.execute_script("window.open('', '_blank');")
+                            driver.switch_to.window(driver.window_handles[-1])
+                            driver.get(high_res_url)
+                            random_sleep(1, 2)
+
+                            # Download the image
+                            if download_image(
+                                high_res_url, query_folder, f"img_{image_count}"
+                            ):
+                                image_count += 1
+                                images_downloaded_this_round += 1
+                                downloaded_urls.add(high_res_url)
+                                logger.info(
+                                    f"Successfully downloaded high-res image {image_count}"
+                                )
+                        except TimeoutException:
+                            logger.warning(
+                                f"Website or image took too long to load (>{WEBSITE_LOAD_TIMEOUT}s), skipping: {visit_url}"
+                            )
+                        except Exception as e:
+                            logger.error(f"Error visiting source website: {e}")
+                        finally:
+                            # Close extra tabs and return to main
+                            while len(driver.window_handles) > 1:
+                                driver.switch_to.window(driver.window_handles[-1])
+                                driver.close()
+                            driver.switch_to.window(main_window)
                     else:
                         # Fallback: Just download the high_res_url if visit link not found
                         if download_image(
