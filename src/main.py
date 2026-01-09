@@ -5,8 +5,8 @@ from dotenv import load_dotenv
 _ = load_dotenv()
 
 # Modular Import
-from .setup_driver import setup_driver
-from .scrape_image import scrape_images
+from setup_driver import setup_driver
+from scrape_image import scrape_images
 
 # Configuration
 SEARCH_TERMS_RAW = os.getenv("SEARCH_TERMS", None)
