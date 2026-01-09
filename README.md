@@ -4,6 +4,8 @@
 
 ![Banner](imager_banner.png)
 
+![video](imager_video.gif)
+
 ## Description
 
 **Imager** is a specialized utility developed to automate the manual bottleneck of gathering image datasets. Unlike traditional scraping methods that struggle with JavaScript-heavy sites, Imager leverages **Selenium WebDriver** to interact with the browser like a human would.
