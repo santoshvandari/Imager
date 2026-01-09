@@ -1,10 +1,10 @@
-from venv import logger
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from .logger_config import logger
-from .utils import random_sleep, download_image
+from logger_config import logger
+from utils import random_sleep, download_image
 import os
 from dotenv import load_dotenv
 
@@ -19,7 +19,10 @@ SAVE_FOLDER = os.getenv("SAVE_FOLDER", "downloaded_images")
 def scroll_page(driver: webdriver.Chrome, scrolls: int = 5):
     logger.info(f"Scrolling page {scrolls} times...")
     for _ in range(scrolls):
-        driver.execute_script("window.scrollBy(0, 1000);")
+
+        driver.execute_script(  # pyright: ignore[reportUnknownMemberType]
+            "window.scrollBy(0, 1000);"
+        )
         random_sleep(1, 2)
 
     try:
@@ -48,9 +51,9 @@ def scrape_images(driver: webdriver.Chrome, query: str, num_images: int):
     main_window = driver.current_window_handle
 
     image_count = 0
-    downloaded_urls = set()
+    downloaded_urls: set[str] = set()
     scroll_count = 0
-    processed_indices = set()
+    processed_indices: set[int] = set()
 
     query_folder = os.path.join(SAVE_FOLDER, query.replace(" ", "_"))
     if not os.path.exists(query_folder):
@@ -111,12 +114,14 @@ def scrape_images(driver: webdriver.Chrome, query: str, num_images: int):
                     processed_indices.add(idx)
                     continue
 
-                driver.execute_script(
+                driver.execute_script(  # pyright: ignore[reportUnknownMemberType]
                     "arguments[0].scrollIntoView({block: 'center'});", thumbnail
                 )
                 random_sleep(0.3, 0.6)
 
-                driver.execute_script("arguments[0].click();", thumbnail)
+                driver.execute_script(  # pyright: ignore[reportUnknownMemberType]
+                    "arguments[0].click();", thumbnail
+                )
                 random_sleep(1, 1.5)
 
                 current_windows = driver.window_handles
@@ -148,9 +153,11 @@ def scrape_images(driver: webdriver.Chrome, query: str, num_images: int):
                         )
 
                         for actual_image in actual_images:
-                            src = actual_image.get_attribute(
+                            src = actual_image.get_attribute(  # pyright: ignore[reportUnknownMemberType]
                                 "src"
-                            ) or actual_image.get_attribute("data-src")
+                            ) or actual_image.get_attribute(  # pyright: ignore[reportUnknownMemberType]
+                                "data-src"
+                            )
 
                             if not src or src in downloaded_urls:
                                 continue
@@ -163,12 +170,16 @@ def scrape_images(driver: webdriver.Chrome, query: str, num_images: int):
                                 continue
 
                             try:
-                                width = actual_image.get_attribute(
+                                width = actual_image.get_attribute(  # pyright: ignore[reportUnknownMemberType]
                                     "naturalWidth"
-                                ) or actual_image.get_attribute("width")
-                                height = actual_image.get_attribute(
+                                ) or actual_image.get_attribute(  # pyright: ignore[reportUnknownMemberType]
+                                    "width"
+                                )
+                                height = actual_image.get_attribute(  # pyright: ignore[reportUnknownMemberType]
                                     "naturalHeight"
-                                ) or actual_image.get_attribute("height")
+                                ) or actual_image.get_attribute(  # pyright: ignore[reportUnknownMemberType]
+                                    "height"
+                                )
                                 if width and height:
                                     if int(width) < 100 or int(height) < 100:
                                         continue
@@ -205,10 +216,12 @@ def scrape_images(driver: webdriver.Chrome, query: str, num_images: int):
                         all_images = driver.find_elements(By.TAG_NAME, "img")
 
                         # Sort by size to get the largest images first
-                        valid_images = []
+                        valid_images: list[tuple[WebElement, str, int]] = []
                         for img in all_images:
                             try:
-                                src = img.get_attribute("src") or img.get_attribute(
+                                src = img.get_attribute(  # pyright: ignore[reportUnknownMemberType]
+                                    "src"
+                                ) or img.get_attribute(  # pyright: ignore[reportUnknownMemberType]
                                     "data-src"
                                 )
                                 if not src or src in downloaded_urls:
@@ -223,13 +236,21 @@ def scrape_images(driver: webdriver.Chrome, query: str, num_images: int):
 
                                 # Try to get image size
                                 width = (
-                                    img.get_attribute("naturalWidth")
-                                    or img.get_attribute("width")
+                                    img.get_attribute(  # pyright: ignore[reportUnknownMemberType]
+                                        "naturalWidth"
+                                    )
+                                    or img.get_attribute(  # pyright: ignore[reportUnknownMemberType]
+                                        "width"
+                                    )
                                     or 0
                                 )
                                 height = (
-                                    img.get_attribute("naturalHeight")
-                                    or img.get_attribute("height")
+                                    img.get_attribute(  # pyright: ignore[reportUnknownMemberType]
+                                        "naturalHeight"
+                                    )
+                                    or img.get_attribute(  # pyright: ignore[reportUnknownMemberType]
+                                        "height"
+                                    )
                                     or 0
                                 )
 
@@ -240,7 +261,7 @@ def scrape_images(driver: webdriver.Chrome, query: str, num_images: int):
                                     width = 0
                                     height = 0
 
-                                if width >= 200 and height >= 200:
+                                if width >= 500 and height >= 500:
                                     valid_images.append((img, src, width * height))
                             except:
                                 continue
@@ -249,7 +270,7 @@ def scrape_images(driver: webdriver.Chrome, query: str, num_images: int):
                         valid_images.sort(key=lambda x: x[2], reverse=True)
 
                         # Try to download the largest valid image
-                        for img, src, size in valid_images[:3]:  # Try top 3 largest
+                        for img, src, _ in valid_images[:3]:  # Try top 3 largest
                             if (
                                 "http" in src
                                 or "data:image/jpeg" in src
