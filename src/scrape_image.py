@@ -1,11 +1,11 @@
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from logger_config import logger
 from utils import random_sleep, download_image
 import os
+import time
 from dotenv import load_dotenv
 
 _ = load_dotenv()
@@ -42,7 +42,7 @@ def scroll_page(driver: webdriver.Chrome, scrolls: int = 5):
 
 
 def scrape_images(driver: webdriver.Chrome, query: str, num_images: int):
-    logger.info(f"Starting scrape for: {query}")
+    logger.info(f"Starting high-resolution scrape for: {query}")
 
     search_url = GOOGLE_IMAGES_URL + query.replace(" ", "+")
     driver.get(search_url)
@@ -64,15 +64,14 @@ def scrape_images(driver: webdriver.Chrome, query: str, num_images: int):
         try:
             _ = WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located(
-                    (By.CSS_SELECTOR, "img.Q4LuWd, img.rg_i, img.YQ4gaf")
+                    (By.CSS_SELECTOR, "img.YQ4gaf, img.Q4LuWd, img.rg_i")
                 )
             )
         except Exception as e:
-            logger.error(f"Timeout waiting for images: {e}")
+            logger.error(f"Timeout waiting for thumbnails: {e}")
             break
 
         thumbnail_selectors = ["img.YQ4gaf", "img.Q4LuWd", "img.rg_i"]
-
         thumbnails = []
         active_selector = None
 
@@ -80,16 +79,12 @@ def scrape_images(driver: webdriver.Chrome, query: str, num_images: int):
             thumbnails = driver.find_elements(By.CSS_SELECTOR, selector)
             if thumbnails:
                 active_selector = selector
-                logger.info(
-                    f"Found {len(thumbnails)} thumbnails with selector: {selector}"
-                )
                 break
 
         if not thumbnails:
             logger.warning("No thumbnails found, scrolling...")
             scroll_page(driver, 3)
             scroll_count += 1
-            random_sleep(1, 2)
             continue
 
         images_downloaded_this_round = 0
@@ -109,200 +104,129 @@ def scrape_images(driver: webdriver.Chrome, query: str, num_images: int):
                     continue
 
                 thumbnail = current_thumbnails[idx]
-
                 if not thumbnail.is_displayed():
                     processed_indices.add(idx)
                     continue
 
+                # Click the thumbnail to open the preview pane
                 driver.execute_script(  # pyright: ignore[reportUnknownMemberType]
                     "arguments[0].scrollIntoView({block: 'center'});", thumbnail
                 )
-                random_sleep(0.3, 0.6)
-
+                random_sleep(0.5, 1)
                 driver.execute_script(  # pyright: ignore[reportUnknownMemberType]
                     "arguments[0].click();", thumbnail
                 )
-                random_sleep(1, 1.5)
+                random_sleep(1.5, 2.5)
 
-                current_windows = driver.window_handles
-                if len(current_windows) > 1:
-                    for window in current_windows:
-                        if window != main_window:
-                            driver.switch_to.window(window)
-                            driver.close()
-                            logger.debug(f"Closed extra tab/window")
-                    driver.switch_to.window(main_window)
-
-                img_selectors = [
-                    "img.sFlh5c.pT0Scc.iPVvYb",  # Google Images specific
-                    "img.n3VNCb",  # Alternative Google selector
-                    "img.iPVvYb",  # Simplified selector
-                    "img[jsname='kn3ccd']",  # Another Google selector
-                    "img[jsname='HiaYvf']",  # Yet another variant
-                    "div[data-id] img",  # Images inside preview divs
-                    "a[jsname='sTFXNd'] img",  # Images in preview links
-                ]
-
-                found_image = False
-
-                # First try specific selectors
-                for img_selector in img_selectors:
-                    try:
-                        actual_images = driver.find_elements(
-                            By.CSS_SELECTOR, img_selector
+                # Find the high-res image element and the visit link
+                # Google uses jsname="kn3ccd" for the large preview image
+                try:
+                    preview_img = WebDriverWait(driver, 10).until(
+                        EC.presence_of_element_located(
+                            (By.CSS_SELECTOR, "img[jsname='kn3ccd']")
                         )
+                    )
 
-                        for actual_image in actual_images:
-                            src = actual_image.get_attribute(  # pyright: ignore[reportUnknownMemberType]
-                                "src"
-                            ) or actual_image.get_attribute(  # pyright: ignore[reportUnknownMemberType]
-                                "data-src"
-                            )
-
-                            if not src or src in downloaded_urls:
-                                continue
-
-                            if (
-                                "data:image/gif" in src
-                                or "data:image/svg" in src
-                                or len(src) < 100
-                            ):
-                                continue
-
-                            try:
-                                width = actual_image.get_attribute(  # pyright: ignore[reportUnknownMemberType]
-                                    "naturalWidth"
-                                ) or actual_image.get_attribute(  # pyright: ignore[reportUnknownMemberType]
-                                    "width"
-                                )
-                                height = actual_image.get_attribute(  # pyright: ignore[reportUnknownMemberType]
-                                    "naturalHeight"
-                                ) or actual_image.get_attribute(  # pyright: ignore[reportUnknownMemberType]
-                                    "height"
-                                )
-                                if width and height:
-                                    if int(width) < 100 or int(height) < 100:
-                                        continue
-                            except:
-                                pass  # If we can't get dimensions, try downloading anyway
-
-                            if (
-                                "http" in src
-                                or "data:image/jpeg" in src
-                                or "data:image/png" in src
-                            ):
-                                if download_image(
-                                    src, query_folder, f"img_{image_count}"
-                                ):
-                                    downloaded_urls.add(src)
-                                    image_count += 1
-                                    images_downloaded_this_round += 1
-                                    processed_indices.add(idx)
-                                    logger.info(
-                                        f"Downloaded {image_count}/{num_images} for '{query}' using selector: {img_selector}"
-                                    )
-                                    found_image = True
-                                    break
-
-                        if found_image:
+                    # Wait for the high-resolution URL to load into the src attribute
+                    high_res_url = None
+                    for _ in range(15):  # Wait up to 15 seconds
+                        src = preview_img.get_attribute(  # pyright: ignore[reportUnknownMemberType]
+                            "src"
+                        )
+                        if (
+                            src
+                            and "gstatic.com" not in src
+                            and not src.startswith("data:")
+                        ):
+                            high_res_url = src
                             break
-                    except Exception as e:
-                        logger.debug(f"Selector {img_selector} failed: {str(e)[:50]}")
+                        time.sleep(1)
+
+                    if not high_res_url:
+                        logger.warning(
+                            f"Could not get high-res URL for thumbnail {idx}"
+                        )
+                        processed_indices.add(idx)
                         continue
 
-                if not found_image:
-                    try:
-                        logger.debug(f"Trying generic img search for thumbnail {idx}")
-                        all_images = driver.find_elements(By.TAG_NAME, "img")
+                    # Find the 'Visit' button link
+                    # Common selectors for the visit link on the preview pane
+                    visit_selectors = ["a.umNKYc", "[jsname='St5Dhe'] a", "a.YsLeY"]
+                    visit_url = None
+                    for v_sel in visit_selectors:
+                        try:
+                            v_el = driver.find_element(By.CSS_SELECTOR, v_sel)
+                            visit_url = v_el.get_attribute(  # pyright: ignore[reportUnknownMemberType]
+                                "href"
+                            )
+                            if visit_url:
+                                break
+                        except:
+                            continue
 
-                        # Sort by size to get the largest images first
-                        valid_images: list[tuple[WebElement, str, int]] = []
-                        for img in all_images:
-                            try:
-                                src = img.get_attribute(  # pyright: ignore[reportUnknownMemberType]
-                                    "src"
-                                ) or img.get_attribute(  # pyright: ignore[reportUnknownMemberType]
-                                    "data-src"
-                                )
-                                if not src or src in downloaded_urls:
-                                    continue
+                    if visit_url:
+                        logger.info(
+                            f"Visiting source website for image {image_count+1}: {visit_url}"
+                        )
+                        # Open visit URL in a new tab
+                        driver.execute_script(  # pyright: ignore[reportUnknownMemberType]
+                            "window.open(arguments[0], '_blank');", visit_url
+                        )
+                        driver.switch_to.window(driver.window_handles[-1])
+                        random_sleep(2, 4)  # Allow page to load and cookies to set
 
-                                if (
-                                    "data:image/gif" in src
-                                    or "data:image/svg" in src
-                                    or len(src) < 100
-                                ):
-                                    continue
+                        # Now open the image itself in a new tab as requested
+                        logger.info(f"Opening image in new tab: {high_res_url}")
+                        driver.execute_script(  # pyright: ignore[reportUnknownMemberType]
+                            "window.open(arguments[0], '_blank');", high_res_url
+                        )
+                        driver.switch_to.window(driver.window_handles[-1])
+                        random_sleep(1, 2)
 
-                                # Try to get image size
-                                width = (
-                                    img.get_attribute(  # pyright: ignore[reportUnknownMemberType]
-                                        "naturalWidth"
-                                    )
-                                    or img.get_attribute(  # pyright: ignore[reportUnknownMemberType]
-                                        "width"
-                                    )
-                                    or 0
-                                )
-                                height = (
-                                    img.get_attribute(  # pyright: ignore[reportUnknownMemberType]
-                                        "naturalHeight"
-                                    )
-                                    or img.get_attribute(  # pyright: ignore[reportUnknownMemberType]
-                                        "height"
-                                    )
-                                    or 0
-                                )
+                        # Download the image from the direct link
+                        if download_image(
+                            high_res_url, query_folder, f"img_{image_count}"
+                        ):
+                            image_count += 1
+                            images_downloaded_this_round += 1
+                            downloaded_urls.add(high_res_url)
+                            logger.info(
+                                f"Successfully downloaded high-res image {image_count}"
+                            )
 
-                                try:
-                                    width = int(width)
-                                    height = int(height)
-                                except:
-                                    width = 0
-                                    height = 0
+                        # Close extra tabs and return to main
+                        while len(driver.window_handles) > 1:
+                            driver.switch_to.window(driver.window_handles[-1])
+                            driver.close()
+                        driver.switch_to.window(main_window)
+                    else:
+                        # Fallback: Just download the high_res_url if visit link not found
+                        if download_image(
+                            high_res_url, query_folder, f"img_{image_count}"
+                        ):
+                            image_count += 1
+                            images_downloaded_this_round += 1
+                            downloaded_urls.add(high_res_url)
+                            logger.info(
+                                f"Downloaded via high-res URL directly (no visit link)"
+                            )
 
-                                if width >= 500 and height >= 500:
-                                    valid_images.append((img, src, width * height))
-                            except:
-                                continue
+                    processed_indices.add(idx)
 
-                        # Sort by size (largest first)
-                        valid_images.sort(key=lambda x: x[2], reverse=True)
-
-                        # Try to download the largest valid image
-                        for img, src, _ in valid_images[:3]:  # Try top 3 largest
-                            if (
-                                "http" in src
-                                or "data:image/jpeg" in src
-                                or "data:image/png" in src
-                            ):
-                                if download_image(
-                                    src, query_folder, f"img_{image_count}"
-                                ):
-                                    downloaded_urls.add(src)
-                                    image_count += 1
-                                    images_downloaded_this_round += 1
-                                    processed_indices.add(idx)
-                                    logger.info(
-                                        f"Downloaded {image_count}/{num_images} for '{query}' using generic search"
-                                    )
-                                    found_image = True
-                                    break
-                    except Exception as e:
-                        logger.debug(f"Generic img search failed: {str(e)[:50]}")
-
-                if not found_image:
-                    processed_indices.add(idx)  # Mark as processed even if failed
+                except Exception as e:
+                    logger.debug(f"High-res workflow failed for thumbnail {idx}: {e}")
+                    processed_indices.add(idx)
+                    continue
 
             except Exception as e:
-                logger.debug(f"Error processing thumbnail {idx}: {str(e)[:50]}")
-                processed_indices.add(idx)  # Mark as processed to avoid retrying
+                logger.error(f"Error processing thumbnail {idx}: {e}")
+                processed_indices.add(idx)
                 continue
 
         if images_downloaded_this_round == 0:
-            logger.info(f"No new images found. Scrolling for more content...")
+            logger.info("No new high-res images found this round. Scrolling...")
             scroll_page(driver, 3)
             scroll_count += 1
             random_sleep(1, 2)
 
-    logger.info(f"Finished downloading {image_count} images for: {query}")
+    logger.info(f"Finished. Total images downloaded: {image_count}")

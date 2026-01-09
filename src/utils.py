@@ -56,6 +56,8 @@ def download_image(url: str, folder_path: str, image_name: str) -> bool:
             _, encoded = url.split(",", 1)
             data = base64.b64decode(encoded)
             img = Image.open(BytesIO(data))
+            if img.mode != "RGB":
+                img = img.convert("RGB")
             img.save(os.path.join(folder_path, f"{image_name}.jpg"), "JPEG")
             return True
         else:
@@ -64,6 +66,9 @@ def download_image(url: str, folder_path: str, image_name: str) -> bool:
             response = requests.get(url, timeout=10, headers=headers)
             if response.status_code == 200:
                 img = Image.open(BytesIO(response.content))
+                # Convert to RGB to ensure it can be saved as JPEG
+                if img.mode != "RGB":
+                    img = img.convert("RGB")
                 img.save(os.path.join(folder_path, f"{image_name}.jpg"), "JPEG")
                 return True
             else:
