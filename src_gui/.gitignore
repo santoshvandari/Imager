@@ -1,0 +1,35 @@
+# Build artifacts
+build/
+dist/
+*.spec.bak
+
+# Virtual environment
+venv_build/
+
+# PyInstaller files
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+
+# Distribution folder
+Imager_Portable/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Log files
+*.log
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+
+*.png
+*.jpg

@@ -2,5 +2,4 @@ __pycache__
 
 *.jpeg
 *.log
-*.txt
 .env

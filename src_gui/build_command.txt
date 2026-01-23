@@ -1,0 +1,4 @@
+pyinstaller --onefile --noconsole --clean main.py
+
+
+pyinstaller --onefile --noconsole --clean --hidden-import=backports --hidden-import=importlib_resources main.py

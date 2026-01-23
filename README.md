@@ -28,12 +28,14 @@ It handles complex tasks such as triggering infinite scrolls, interacting with l
 ## Installation
 
 1. Clone the repository:
+
    ```bash
    git clone https://github.com/santoshvandari/Imager.git
    cd Imager
    ```
 
 2. Setup virtual environment:
+
    ```bash
    python3 -m virtualenv venv
    source venv/bin/activate
@@ -52,28 +54,37 @@ Copy the example environment file and customize your settings:
 cp src/.env.example src/.env
 ```
 
-| Variable | Description | Default |
-| :--- | :--- | :--- |
-| `SEARCH_TERMS` | Comma-separated list of queries | `cyberpunk city` |
-| `NUMBER_OF_IMAGES` | Images to download per query | `5` |
-| `SAVE_FOLDER` | Root folder for downloads | `downloaded_images` |
-| `WEBSITE_LOAD_TIMEOUT`| Max seconds to wait for source sites | `10` |
-| `LOG_FILE` | Path to log results | `scraper.log` |
+| Variable               | Description                          | Default             |
+| :--------------------- | :----------------------------------- | :------------------ |
+| `SEARCH_TERMS`         | Comma-separated list of queries      | `cyberpunk city`    |
+| `NUMBER_OF_IMAGES`     | Images to download per query         | `5`                 |
+| `SAVE_FOLDER`          | Root folder for downloads            | `downloaded_images` |
+| `WEBSITE_LOAD_TIMEOUT` | Max seconds to wait for source sites | `10`                |
+| `LOG_FILE`             | Path to log results                  | `scraper.log`       |
 
 ## Usage
 
 Run the utility via terminal:
+
 ```bash
 python3 src/main.py
 ```
 
+Run the Utility in Windows:
+
+- Download the .exe file from the [Releases](https://github.com/santoshvandari/Imager/releases) page.
+- Double-click the .exe file to run the utility.
+
 Images will be saved in `downloaded_images/{query_name}/`.
 
 ## Contributing
+
 We welcome contributions! If you'd like to contribute to this Flutter Package Project, please check out our [Contribution Guidelines](CONTRIBUTING.md).
 
 ## Code of Conduct
+
 Please review our [Code of Conduct](CODE_OF_CONDUCT.md) before participating in this app.
 
 ## License
+
 This project is licensed under the MIT [License](LICENSE).
