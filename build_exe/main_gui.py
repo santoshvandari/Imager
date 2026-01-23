@@ -52,7 +52,7 @@ class ImagerGUI:
         self.create_layouts()
         self.center_window()
         
-        self.log("🚀 System initialized and ready.", 'system')
+        self.log("System initialized and ready.", 'system')
 
     def center_window(self):
         self.root.update_idletasks()
@@ -197,10 +197,26 @@ class ImagerGUI:
                          highlightthickness=0)
         entry.pack(fill=tk.X, ipady=8, padx=10)
         
-        if not var: entry.insert(0, placeholder)
-        
         # Bottom Border
         tk.Frame(parent, bg="#D1D5DB", height=1).pack(fill=tk.X, pady=(0, 15))
+        
+        # Placeholder Logic
+        if not var:
+            entry.insert(0, placeholder)
+            entry.config(fg=AwesomeTheme.TEXT_MUTED)
+            
+            def on_focus_in(event):
+                if entry.get() == placeholder:
+                    entry.delete(0, tk.END)
+                    entry.config(fg=AwesomeTheme.TEXT_MAIN)
+            
+            def on_focus_out(event):
+                if not entry.get():
+                    entry.insert(0, placeholder)
+                    entry.config(fg=AwesomeTheme.TEXT_MUTED)
+            
+            entry.bind("<FocusIn>", on_focus_in)
+            entry.bind("<FocusOut>", on_focus_out)
         
         return entry
 
@@ -221,7 +237,9 @@ class ImagerGUI:
 
     def start_scraping(self):
         query = self.search_entry.get().strip()
-        if not query or query == "e.g. Cyberpunk City, 4K Nature, Portraits":
+        placeholder_text = "e.g. Cyberpunk City, 4K Nature, Portraits"
+        
+        if not query or query == placeholder_text:
             messagebox.showwarning("Missing Input", "Please enter valid search terms.")
             return
             
