@@ -66,6 +66,8 @@ Run the utility via terminal:
 ```bash
 python3 src/main.py
 ```
+Run the Utility in Windows
+
 
 Images will be saved in `downloaded_images/{query_name}/`.
 
