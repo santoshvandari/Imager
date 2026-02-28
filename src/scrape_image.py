@@ -10,7 +10,7 @@ import os
 import time
 from dotenv import load_dotenv
 
-_ = load_dotenv()
+load_dotenv()
 
 GOOGLE_IMAGES_URL = os.getenv(
     "GOOGLE_IMAGES_URL", "https://www.google.com/search?tbm=isch&q="

@@ -2,7 +2,7 @@ import logging
 import os
 from dotenv import load_dotenv
 
-_ = load_dotenv()
+load_dotenv()
 
 
 LOG_FILE = os.getenv("LOG_FILE", "scraper.log")
